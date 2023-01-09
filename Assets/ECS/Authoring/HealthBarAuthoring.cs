@@ -7,7 +7,7 @@ public class HealthBarAuthoring : MonoBehaviour
     {
         public override void Bake(HealthBarAuthoring authoring)
         {
-            AddComponentObject(new HealthBarImage());
+            AddComponentObject(new HealthBarRef());
         }
     }
 }

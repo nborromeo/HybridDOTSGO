@@ -14,15 +14,15 @@ public partial struct HealthBarSystem : ISystem
 
     public void OnUpdate(ref SystemState state)
     {
-        //Consider that HealthBarImage being a managed component don't need to specify the need of write access 
-        foreach (var (enemyIndex, health, healthBarImage) in SystemAPI.Query<EnemyId, Health, HealthBarImage>())
+        if (EnemyUIManager.Instance.UpdateOnMb)
         {
-            if (healthBarImage.value == null)
-            {
-                healthBarImage.value = HealthBar.GetEnemyBar(enemyIndex.value);
-            }
-            
-            //healthBarImage.value.fillAmount = health.value / 100f;
+            return;
+        }
+        
+        //Consider that HealthBarImage being a managed component don't need to specify the need of write access 
+        foreach (var (enemyIndex, health, healthBarImage) in SystemAPI.Query<EnemyId, Health, HealthBarRef>())
+        {
+            healthBarImage.value.Image.fillAmount = health.value / 100f;
         }
     }
 }

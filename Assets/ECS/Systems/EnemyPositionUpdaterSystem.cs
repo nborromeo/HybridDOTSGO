@@ -35,7 +35,7 @@ public partial struct EnemyPositionUpdaterSystem : ISystem
         var indicesJob = new QueryIndicesJob {enemyIds = _enemyIds, enemyQueryIndexById = _enemyQueryIndexById};
         var positionJob = new PositionJob {positions = _enemyPositions, enemyQueryIndexById = _enemyQueryIndexById};
         var indicesJobHandle = indicesJob.Schedule(_enemyIds.Length, 100, state.Dependency);
-        state.Dependency = positionJob.Schedule(EnemyUI.Instance.Positions, indicesJobHandle);
+        state.Dependency = positionJob.Schedule(EnemyUIManager.Instance.Positions, indicesJobHandle);
     }
 
     private void DisposeArrays()
@@ -57,10 +57,10 @@ public partial struct EnemyPositionUpdaterSystem : ISystem
         [ReadOnly] public NativeArray<EnemyId> enemyIds;
         [NativeDisableParallelForRestriction] public NativeArray<int> enemyQueryIndexById;
         
-        public void Execute(int enemyIndex)
+        public void Execute(int enemyQueryIndex)
         {
-            var enemyId = enemyIds[enemyIndex].value;
-            enemyQueryIndexById[enemyId] = enemyIndex;
+            var enemyId = enemyIds[enemyQueryIndex].value;
+            enemyQueryIndexById[enemyId] = enemyQueryIndex;
         }
     }
     
@@ -76,8 +76,8 @@ public partial struct EnemyPositionUpdaterSystem : ISystem
         public void Execute(int uiIndex, TransformAccess transform)
         {
             var enemyId = uiIndex; //The enemy ui transforms are ordered by enemy id, then the index is the id.
-            var enemyIndexInQuery = enemyQueryIndexById[enemyId];
-            transform.position = positions[enemyIndexInQuery].Position;
+            var enemyQueryIndex = enemyQueryIndexById[enemyId];
+            transform.position = positions[enemyQueryIndex].Position;
         }
     }
 

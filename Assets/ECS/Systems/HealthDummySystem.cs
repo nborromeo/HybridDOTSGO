@@ -12,6 +12,7 @@ public partial struct HealthDummySystem : ISystem
 
     public void OnUpdate(ref SystemState state)
     {
+        //Schedule some dummy jobs to simulate some heavy logic
         var job1 = new HealthDummyJob().Schedule(state.Dependency);
         var job2 = new HealthDummyJob().Schedule(job1);
         state.Dependency = new HealthDummyJob().Schedule(job2);

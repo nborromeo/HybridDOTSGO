@@ -281,9 +281,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2bcd1e97a26540e8b335f8fefe25bb30, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _amount: 1000
-  _enemyUIPrefab: {fileID: 5382435522095903077, guid: fabf5b817b0ee47bb9ce073647f57f48,
-    type: 3}
+  _prefab: {fileID: 5382435522095903077, guid: fabf5b817b0ee47bb9ce073647f57f48, type: 3}
+  _updateOnMB: 1
 --- !u!4 &396828681
 Transform:
   m_ObjectHideFlags: 0
