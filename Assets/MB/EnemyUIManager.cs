@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Jobs;
 
@@ -9,6 +10,7 @@ public class EnemyUIManager : MonoBehaviour
     [SerializeField] private bool _updateOnMB;
     
     public TransformAccessArray Positions { get; set; }
+    public List<HealthBar> HealthBars { get; } = new List<HealthBar>();
     public GameObject Prefab => _prefab;
     public bool UpdateOnMb => _updateOnMB;
 
@@ -21,5 +23,5 @@ public class EnemyUIManager : MonoBehaviour
     {
         Instance = null;
         Positions.Dispose();
-    } 
+    }
 }

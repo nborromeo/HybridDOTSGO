@@ -34,6 +34,11 @@ public partial struct EnemySpawnerSystem : ISystem
         {
             InstanceNew(ref spawner, ref state);
         }
+
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            DeleteRandom(ref state);
+        }
     }
 
     private void InitialSpawn(ref EnemySpawner spawner, ref SystemState state)
@@ -51,6 +56,7 @@ public partial struct EnemySpawnerSystem : ISystem
             healthBar.EnemyEntity = enemyEntity;
             //healthBar.EntityManager = state.EntityManager; //This is needed in case of multiple worlds
             enemyUIs[i] = ui.transform;
+            EnemyUIManager.Instance.HealthBars.Add(healthBar);
 
             var position = new float3 {x = i / (GridSize * GridSize), y = i / GridSize % GridSize, z = i % 10} * 2;
             SystemAPI.SetComponent(enemyEntity, new EnemyId {value = i});
@@ -79,7 +85,27 @@ public partial struct EnemySpawnerSystem : ISystem
         SystemAPI.SetComponent(enemyEntity, new LocalTransform {Position = position, Scale = 1});
         state.EntityManager.SetComponentData(enemyEntity, new HealthBarRef {value = healthBar});
             
+        EnemyUIManager.Instance.HealthBars.Add(healthBar);
         EnemyUIManager.Instance.Positions.Add(ui.transform);
+    }
+
+    private void DeleteRandom(ref SystemState state)
+    {
+        //Delete the enemy's GO and Entity 
+        var indexToDelete = Random.Range(0, EnemyUIManager.Instance.HealthBars.Count);
+        var healthBarToDelete = EnemyUIManager.Instance.HealthBars[indexToDelete];
+        Object.Destroy(healthBarToDelete.transform.parent.gameObject);
+        state.EntityManager.DestroyEntity(healthBarToDelete.EnemyEntity);
+        
+        //Update the swapped entity id
+        EnemyUIManager.Instance.Positions.RemoveAtSwapBack(indexToDelete);
+        EnemyUIManager.Instance.HealthBars.RemoveAtSwapBack(indexToDelete);
+        if (indexToDelete < EnemyUIManager.Instance.HealthBars.Count)
+        {
+            var swappedBackHealthBar = EnemyUIManager.Instance.HealthBars[indexToDelete];
+            var swappedBackHealthBarEntity = swappedBackHealthBar.EnemyEntity;
+            state.EntityManager.SetComponentData(swappedBackHealthBarEntity, new EnemyId {value = indexToDelete});
+        }
     }
     
     [BurstCompile]
