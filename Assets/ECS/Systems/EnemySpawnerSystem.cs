@@ -5,6 +5,7 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 using UnityEngine.Jobs;
+using Random = UnityEngine.Random;
 
 /// <summary>
 /// Spawner system for the enemies
@@ -23,7 +24,20 @@ public partial struct EnemySpawnerSystem : ISystem
     public void OnUpdate(ref SystemState state)
     {
         var spawner = SystemAPI.GetSingleton<EnemySpawner>();
-        var spawnerEntity = SystemAPI.GetSingletonEntity<EnemySpawner>();
+
+        if (!spawner.spawned)
+        {
+            InitialSpawn(ref spawner, ref state);
+        }
+
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            InstanceNew(ref spawner, ref state);
+        }
+    }
+
+    private void InitialSpawn(ref EnemySpawner spawner, ref SystemState state)
+    {
         var enemyUIs = new Transform[spawner.amount];
         var enemyEntities = new NativeArray<Entity>(spawner.amount, Allocator.Temp);
         state.EntityManager.Instantiate(spawner.enemyPrefab, enemyEntities);
@@ -31,21 +45,41 @@ public partial struct EnemySpawnerSystem : ISystem
         for (var i = 0; i < enemyEntities.Length; i++)
         {
             var enemyEntity = enemyEntities[i];
-            
+
             var ui = Object.Instantiate(EnemyUIManager.Instance.Prefab);
             var healthBar = ui.GetComponentInChildren<HealthBar>();
             healthBar.EnemyEntity = enemyEntity;
+            //healthBar.EntityManager = state.EntityManager; //This is needed in case of multiple worlds
             enemyUIs[i] = ui.transform;
-            
+
             var position = new float3 {x = i / (GridSize * GridSize), y = i / GridSize % GridSize, z = i % 10} * 2;
             SystemAPI.SetComponent(enemyEntity, new EnemyId {value = i});
             SystemAPI.SetComponent(enemyEntity, new Health {value = i * 10 % 100});
             SystemAPI.SetComponent(enemyEntity, new LocalTransform {Position = position, Scale = 1});
             state.EntityManager.SetComponentData(enemyEntity, new HealthBarRef {value = healthBar});
         }
-        
+
         EnemyUIManager.Instance.Positions = new TransformAccessArray(enemyUIs);
-        state.EntityManager.DestroyEntity(spawnerEntity);
+
+        spawner.spawned = true;
+        SystemAPI.SetSingleton(spawner);
+    }
+
+    private void InstanceNew(ref EnemySpawner spawner, ref SystemState state)
+    {
+        var enemyEntity = state.EntityManager.Instantiate(spawner.enemyPrefab);
+        var ui = Object.Instantiate(EnemyUIManager.Instance.Prefab);
+        
+        var healthBar = ui.GetComponentInChildren<HealthBar>();
+        healthBar.EnemyEntity = enemyEntity;
+
+        var position = new float3 {x = Random.Range(25f, 50f), y = Random.Range(25f, 50f), z = Random.Range(25f, 50f)};
+        SystemAPI.SetComponent(enemyEntity, new EnemyId {value = EnemyUIManager.Instance.Positions.length});
+        SystemAPI.SetComponent(enemyEntity, new Health {value = 50});
+        SystemAPI.SetComponent(enemyEntity, new LocalTransform {Position = position, Scale = 1});
+        state.EntityManager.SetComponentData(enemyEntity, new HealthBarRef {value = healthBar});
+            
+        EnemyUIManager.Instance.Positions.Add(ui.transform);
     }
     
     [BurstCompile]

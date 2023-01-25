@@ -31,7 +31,7 @@ public partial struct EnemyPositionUpdaterSystem : ISystem
         _enemyIds = _enemyQuery.ToComponentDataArray<EnemyId>(Allocator.TempJob);
         _enemyPositions = _enemyQuery.ToComponentDataArray<LocalToWorld>(Allocator.TempJob);
         _enemyQueryIndexById = new NativeArray<int>(_enemyIds.Length, Allocator.TempJob);
-
+        
         var indicesJob = new QueryIndicesJob {enemyIds = _enemyIds, enemyQueryIndexById = _enemyQueryIndexById};
         var positionJob = new PositionJob {positions = _enemyPositions, enemyQueryIndexById = _enemyQueryIndexById};
         var indicesJobHandle = indicesJob.Schedule(_enemyIds.Length, 100, state.Dependency);

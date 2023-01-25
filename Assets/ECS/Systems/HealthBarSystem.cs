@@ -20,7 +20,7 @@ public partial struct HealthBarSystem : ISystem
         }
         
         //Consider that HealthBarImage being a managed component don't need to specify the need of write access 
-        foreach (var (enemyIndex, health, healthBarImage) in SystemAPI.Query<EnemyId, Health, HealthBarRef>())
+        foreach (var (health, healthBarImage) in SystemAPI.Query<Health, HealthBarRef>().WithAll<EnemyId>())
         {
             healthBarImage.value.Image.fillAmount = health.value / 100f;
         }
