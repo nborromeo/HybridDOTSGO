@@ -7,10 +7,8 @@ using UnityEngine;
 using UnityEngine.Jobs;
 using Random = UnityEngine.Random;
 
-/// <summary>
-/// Spawner system for the enemies
-/// </summary>
 [BurstCompile]
+[UpdateInGroup(typeof(InitializationSystemGroup))]
 public partial struct EnemySpawnerSystem : ISystem
 {
     private const int GridSize = 10;
@@ -32,7 +30,9 @@ public partial struct EnemySpawnerSystem : ISystem
 
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            InstanceNew(ref spawner, ref state);
+            var enemyEntity = state.EntityManager.Instantiate(spawner.enemyPrefab);
+            var position = new float3 {x = Random.Range(25f, 50f), y = Random.Range(25f, 50f), z = Random.Range(25f, 50f)};
+            InitEntity(enemyEntity, position, ref state);
         }
 
         if (Input.GetKeyDown(KeyCode.Q))
@@ -43,69 +43,38 @@ public partial struct EnemySpawnerSystem : ISystem
 
     private void InitialSpawn(ref EnemySpawner spawner, ref SystemState state)
     {
-        var enemyUIs = new Transform[spawner.amount];
         var enemyEntities = new NativeArray<Entity>(spawner.amount, Allocator.Temp);
         state.EntityManager.Instantiate(spawner.enemyPrefab, enemyEntities);
+        EntityBehaviourManager.Instance.Positions = new TransformAccessArray(spawner.amount);
 
         for (var i = 0; i < enemyEntities.Length; i++)
         {
             var enemyEntity = enemyEntities[i];
-
-            var ui = Object.Instantiate(EnemyUIManager.Instance.Prefab);
-            var healthBar = ui.GetComponentInChildren<HealthBar>();
-            healthBar.EnemyEntity = enemyEntity;
-            //healthBar.EntityManager = state.EntityManager; //This is needed in case of multiple worlds
-            enemyUIs[i] = ui.transform;
-            EnemyUIManager.Instance.HealthBars.Add(healthBar);
-
             var position = new float3 {x = i / (GridSize * GridSize), y = i / GridSize % GridSize, z = i % 10} * 2;
-            SystemAPI.SetComponent(enemyEntity, new EnemyId {value = i});
-            SystemAPI.SetComponent(enemyEntity, new Health {value = i * 10 % 100});
-            SystemAPI.SetComponent(enemyEntity, new LocalTransform {Position = position, Scale = 1});
-            state.EntityManager.SetComponentData(enemyEntity, new HealthBarRef {value = healthBar});
+            InitEntity(enemyEntity, position, ref state);
         }
-
-        EnemyUIManager.Instance.Positions = new TransformAccessArray(enemyUIs);
 
         spawner.spawned = true;
         SystemAPI.SetSingleton(spawner);
     }
 
-    private void InstanceNew(ref EnemySpawner spawner, ref SystemState state)
+    private void InitEntity(Entity enemyEntity, float3 position, ref SystemState state)
     {
-        var enemyEntity = state.EntityManager.Instantiate(spawner.enemyPrefab);
-        var ui = Object.Instantiate(EnemyUIManager.Instance.Prefab);
-        
-        var healthBar = ui.GetComponentInChildren<HealthBar>();
-        healthBar.EnemyEntity = enemyEntity;
+        var entityBehaviour = Object.Instantiate(EnemyUIManager.Instance.Prefab);
+        entityBehaviour.Entity = enemyEntity;
+        entityBehaviour.EntityManager = state.EntityManager;
 
-        var position = new float3 {x = Random.Range(25f, 50f), y = Random.Range(25f, 50f), z = Random.Range(25f, 50f)};
-        SystemAPI.SetComponent(enemyEntity, new EnemyId {value = EnemyUIManager.Instance.Positions.length});
-        SystemAPI.SetComponent(enemyEntity, new Health {value = 50});
-        SystemAPI.SetComponent(enemyEntity, new LocalTransform {Position = position, Scale = 1});
-        state.EntityManager.SetComponentData(enemyEntity, new HealthBarRef {value = healthBar});
-            
-        EnemyUIManager.Instance.HealthBars.Add(healthBar);
-        EnemyUIManager.Instance.Positions.Add(ui.transform);
+        state.EntityManager.AddComponentData(enemyEntity, new EntityBehaviourReference {value = entityBehaviour});
+        state.EntityManager.AddComponentData(enemyEntity, new EntityBehaviourIndex {value = entityBehaviour.Index});
+        state.EntityManager.AddComponentData(enemyEntity, new HealthBarRef {value = entityBehaviour.GetComponentInChildren<HealthBar>()});
+        state.EntityManager.SetComponentData(enemyEntity, new LocalTransform {Position = position, Scale = 1});
     }
 
     private void DeleteRandom(ref SystemState state)
     {
-        //Delete the enemy's GO and Entity 
-        var indexToDelete = Random.Range(0, EnemyUIManager.Instance.HealthBars.Count);
-        var healthBarToDelete = EnemyUIManager.Instance.HealthBars[indexToDelete];
-        Object.Destroy(healthBarToDelete.transform.parent.gameObject);
-        state.EntityManager.DestroyEntity(healthBarToDelete.EnemyEntity);
-        
-        //Update the swapped entity id
-        EnemyUIManager.Instance.Positions.RemoveAtSwapBack(indexToDelete);
-        EnemyUIManager.Instance.HealthBars.RemoveAtSwapBack(indexToDelete);
-        if (indexToDelete < EnemyUIManager.Instance.HealthBars.Count)
-        {
-            var swappedBackHealthBar = EnemyUIManager.Instance.HealthBars[indexToDelete];
-            var swappedBackHealthBarEntity = swappedBackHealthBar.EnemyEntity;
-            state.EntityManager.SetComponentData(swappedBackHealthBarEntity, new EnemyId {value = indexToDelete});
-        }
+        var indexToDelete = Random.Range(0, EntityBehaviourManager.Instance.All.Count);
+        var healthBarToDelete = EntityBehaviourManager.Instance.All[indexToDelete];
+        state.EntityManager.DestroyEntity(healthBarToDelete.Entity);
     }
     
     [BurstCompile]

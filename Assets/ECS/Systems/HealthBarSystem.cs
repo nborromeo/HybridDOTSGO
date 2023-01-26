@@ -14,13 +14,13 @@ public partial struct HealthBarSystem : ISystem
 
     public void OnUpdate(ref SystemState state)
     {
-        if (EnemyUIManager.Instance.UpdateOnMb)
+        if (EnemyUIManager.Instance == null ||  EnemyUIManager.Instance.UpdateOnMb)
         {
             return;
         }
         
         //Consider that HealthBarImage being a managed component don't need to specify the need of write access 
-        foreach (var (health, healthBarImage) in SystemAPI.Query<Health, HealthBarRef>().WithAll<EnemyId>())
+        foreach (var (health, healthBarImage) in SystemAPI.Query<Health, HealthBarRef>().WithAll<EntityBehaviourIndex>())
         {
             healthBarImage.value.Image.fillAmount = health.value / 100f;
         }
