@@ -283,7 +283,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _prefab: {fileID: 3788936363628800399, guid: fabf5b817b0ee47bb9ce073647f57f48, type: 3}
-  _updateOnMB: 1
+  _updateOnMB: 0
 --- !u!4 &396828681
 Transform:
   m_ObjectHideFlags: 0

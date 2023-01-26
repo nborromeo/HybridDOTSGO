@@ -1,7 +1,6 @@
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
-using Unity.Transforms;
 
 [BurstCompile]
 [UpdateAfter(typeof(EnemySpawnerSystem))]
@@ -13,7 +12,7 @@ public partial struct EntityBehaviourCleanupSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        _query = SystemAPI.QueryBuilder().WithAll<EntityBehaviourReference>().WithNone<LocalToWorld>().Build();
+        _query = SystemAPI.QueryBuilder().WithAll<EntityBehaviourReference>().WithNone<EntityBehaviourIndex>().Build();
         state.RequireForUpdate(_query);
     }
     
@@ -21,13 +20,9 @@ public partial struct EntityBehaviourCleanupSystem : ISystem
     public void OnUpdate(ref SystemState state)
     {
         var entityBehaviours = _query.ToComponentDataArray<EntityBehaviourReference>();
-        var entities = _query.ToEntityArray(Allocator.Temp);
-        
         for (var i = 0; i < entityBehaviours.Length; i++)
         {
             entityBehaviours[i].value.Destroy();
-            state.EntityManager.RemoveComponent<EntityBehaviourReference>(entities[i]);
-            state.EntityManager.DestroyEntity(entities[i]);
         }
     }
     

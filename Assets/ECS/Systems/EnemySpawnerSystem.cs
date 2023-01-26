@@ -61,11 +61,8 @@ public partial struct EnemySpawnerSystem : ISystem
     private void InitEntity(Entity enemyEntity, float3 position, ref SystemState state)
     {
         var entityBehaviour = Object.Instantiate(EnemyUIManager.Instance.Prefab);
-        entityBehaviour.Entity = enemyEntity;
-        entityBehaviour.EntityManager = state.EntityManager;
+        entityBehaviour.Init(enemyEntity, state.EntityManager);
 
-        state.EntityManager.AddComponentData(enemyEntity, new EntityBehaviourReference {value = entityBehaviour});
-        state.EntityManager.AddComponentData(enemyEntity, new EntityBehaviourIndex {value = entityBehaviour.Index});
         state.EntityManager.AddComponentData(enemyEntity, new HealthBarRef {value = entityBehaviour.GetComponentInChildren<HealthBar>()});
         state.EntityManager.SetComponentData(enemyEntity, new LocalTransform {Position = position, Scale = 1});
     }
@@ -73,8 +70,9 @@ public partial struct EnemySpawnerSystem : ISystem
     private void DeleteRandom(ref SystemState state)
     {
         var indexToDelete = Random.Range(0, EntityBehaviourManager.Instance.All.Count);
-        var healthBarToDelete = EntityBehaviourManager.Instance.All[indexToDelete];
-        state.EntityManager.DestroyEntity(healthBarToDelete.Entity);
+        var entityToDestroy = EntityBehaviourManager.Instance.All[indexToDelete];
+        state.EntityManager.DestroyEntity(entityToDestroy.Entity);
+        //entityToDestroy.Destroy(); Also possible
     }
     
     [BurstCompile]

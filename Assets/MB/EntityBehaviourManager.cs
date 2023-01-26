@@ -16,7 +16,7 @@ public class EntityBehaviourManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        Instance = null;
         Positions.Dispose();
+        Instance = null;
     }
 }

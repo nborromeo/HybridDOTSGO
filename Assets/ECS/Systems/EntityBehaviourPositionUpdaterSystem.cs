@@ -6,20 +6,20 @@ using Unity.Transforms;
 using UnityEngine.Jobs;
 
 /// <summary>
-/// Updates the canvas health bar positions to follow the ECS enemies position.
+/// Synchronizes positions of linked entities.
 /// </summary>
 [BurstCompile]
 public partial struct EntityBehaviourPositionUpdaterSystem : ISystem
 {
-    private EntityQuery _enemyQuery;
-    private NativeArray<int> _enemyQueryIndexById;
-    private NativeArray<EntityBehaviourIndex> _enemyIds;
-    private NativeArray<LocalToWorld> _enemyPositions;
+    private EntityQuery _entityQuery;
+    private NativeArray<int> _entityQueryIndexById;
+    private NativeArray<EntityBehaviourIndex> _entityIds;
+    private NativeArray<LocalToWorld> _entityPositions;
     
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        _enemyQuery = SystemAPI.QueryBuilder().WithAll<LocalToWorld>().WithAll<EntityBehaviourIndex>().Build();
+        _entityQuery = SystemAPI.QueryBuilder().WithAll<LocalToWorld>().WithAll<EntityBehaviourIndex>().Build();
     }
 
     public void OnUpdate(ref SystemState state)
@@ -33,56 +33,56 @@ public partial struct EntityBehaviourPositionUpdaterSystem : ISystem
         //at the end of this frame, but could cause a sync point while waiting this jobs to end.
         DisposeArrays();
         
-        _enemyIds = _enemyQuery.ToComponentDataArray<EntityBehaviourIndex>(Allocator.TempJob);
-        _enemyPositions = _enemyQuery.ToComponentDataArray<LocalToWorld>(Allocator.TempJob);
-        _enemyQueryIndexById = new NativeArray<int>(_enemyIds.Length, Allocator.TempJob);
+        _entityIds = _entityQuery.ToComponentDataArray<EntityBehaviourIndex>(Allocator.TempJob);
+        _entityPositions = _entityQuery.ToComponentDataArray<LocalToWorld>(Allocator.TempJob);
+        _entityQueryIndexById = new NativeArray<int>(_entityIds.Length, Allocator.TempJob);
         
-        var indicesJob = new QueryIndicesJob {enemyIds = _enemyIds, enemyQueryIndexById = _enemyQueryIndexById};
-        var positionJob = new PositionJob {positions = _enemyPositions, enemyQueryIndexById = _enemyQueryIndexById};
-        var indicesJobHandle = indicesJob.Schedule(_enemyIds.Length, 100, state.Dependency);
+        var indicesJob = new QueryIndicesJob {entityIds = _entityIds, entityQueryIndexById = _entityQueryIndexById};
+        var positionJob = new PositionJob {positions = _entityPositions, entityQueryIndexById = _entityQueryIndexById};
+        var indicesJobHandle = indicesJob.Schedule(_entityIds.Length, 100, state.Dependency);
         state.Dependency = positionJob.Schedule(EntityBehaviourManager.Instance.Positions, indicesJobHandle);
     }
 
     private void DisposeArrays()
     {
-        if (_enemyPositions.IsCreated)
+        if (_entityPositions.IsCreated)
         {
-            _enemyPositions.Dispose();
-            _enemyIds.Dispose();
-            _enemyQueryIndexById.Dispose();
+            _entityPositions.Dispose();
+            _entityIds.Dispose();
+            _entityQueryIndexById.Dispose();
         }
     }
 
     /// <summary>
-    /// Given the ECS enemies might not be ordered by enemy id in our position query (_enemyQuery) as the ui transforms
-    /// we need to map each enemy id to the current index in the query, which can vary frame to frame.
+    /// Given the ECS entity might not be ordered by entity id in our position query (_entityQuery) as the ui transforms
+    /// we need to map each entity id to the current index in the query, which can vary frame to frame.
     /// </summary>
     private struct QueryIndicesJob : IJobParallelFor
     {
-        [ReadOnly] public NativeArray<EntityBehaviourIndex> enemyIds;
-        [NativeDisableParallelForRestriction] public NativeArray<int> enemyQueryIndexById;
+        [ReadOnly] public NativeArray<EntityBehaviourIndex> entityIds;
+        [NativeDisableParallelForRestriction] public NativeArray<int> entityQueryIndexById;
         
-        public void Execute(int enemyQueryIndex)
+        public void Execute(int entityQueryIndex)
         {
-            var enemyId = enemyIds[enemyQueryIndex].value;
-            enemyQueryIndexById[enemyId] = enemyQueryIndex;
+            var entityId = entityIds[entityQueryIndex].value;
+            entityQueryIndexById[entityId] = entityQueryIndex;
         }
     }
     
     /// <summary>
-    /// Iterate every enemy ui (ordered by enemy id) and copy the enemy ECS position. Consider transforms in the
+    /// Iterate every entity ui (ordered by entity id) and copy the entity ECS position. Consider transforms in the
     /// TransformAccess must not have parent in order to be processed in different threads
     /// </summary>
     private struct PositionJob : IJobParallelForTransform
     {     
         [ReadOnly] public NativeArray<LocalToWorld> positions;
-        [ReadOnly] public NativeArray<int> enemyQueryIndexById;
+        [ReadOnly] public NativeArray<int> entityQueryIndexById;
         
         public void Execute(int uiIndex, TransformAccess transform)
         {
-            var enemyId = uiIndex; //The enemy ui transforms are ordered by enemy id, then the index is the id.
-            var enemyQueryIndex = enemyQueryIndexById[enemyId];
-            transform.position = positions[enemyQueryIndex].Position;
+            var entityId = uiIndex; //The entity ui transforms are ordered by entity id, then the index is the id.
+            var entityQueryIndex = entityQueryIndexById[entityId];
+            transform.position = positions[entityQueryIndex].Position;
         }
     }
 
