@@ -30,7 +30,7 @@ public partial struct EntityBehaviourPositionUpdaterSystem : ISystem
         }
         
         //We dispose the previous frame used arrays. An alternative is to clean them in a system that executes
-        //at the end of this frame, but could cause a sync point while waiting this jobs to end.
+        //at the end of this frame, but could cause a sync point while waiting these jobs to end.
         DisposeArrays();
         
         _entityIds = _entityQuery.ToComponentDataArray<EntityBehaviourIndex>(Allocator.TempJob);

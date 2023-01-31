@@ -3,8 +3,7 @@ using Unity.Collections;
 using Unity.Entities;
 
 [BurstCompile]
-[UpdateAfter(typeof(EnemySpawnerSystem))]
-[UpdateInGroup(typeof(InitializationSystemGroup))]
+[UpdateBefore(typeof(EntityBehaviourPositionUpdaterSystem))]
 public partial struct EntityBehaviourCleanupSystem : ISystem
 {
     private EntityQuery _query;
@@ -16,7 +15,6 @@ public partial struct EntityBehaviourCleanupSystem : ISystem
         state.RequireForUpdate(_query);
     }
     
-    [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
         var entityBehaviours = _query.ToComponentDataArray<EntityBehaviourReference>();
