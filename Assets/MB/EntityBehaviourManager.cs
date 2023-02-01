@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.Entities;
 using UnityEngine;
 using UnityEngine.Jobs;
 
@@ -31,7 +32,10 @@ public class EntityBehaviourManager : MonoBehaviour
 
         if (_destroyInECS)
         {
-            entityToDestroy.EntityManager.DestroyEntity(entityToDestroy.Entity);
+            var world = entityToDestroy.EntityManager.World;
+            var ecbSystem = world.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
+            var ecb = ecbSystem.CreateCommandBuffer();
+            ecb.DestroyEntity(entityToDestroy.Entity);
         }
         else
         {

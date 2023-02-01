@@ -1,9 +1,8 @@
 using Unity.Burst;
-using Unity.Collections;
 using Unity.Entities;
 
 [BurstCompile]
-[UpdateBefore(typeof(EntityBehaviourPositionUpdaterSystem))]
+[UpdateAfter(typeof(EndSimulationEntityCommandBufferSystem))]
 public partial struct EntityBehaviourCleanupSystem : ISystem
 {
     private EntityQuery _query;
@@ -20,7 +19,7 @@ public partial struct EntityBehaviourCleanupSystem : ISystem
         var entityBehaviours = _query.ToComponentDataArray<EntityBehaviourReference>();
         for (var i = 0; i < entityBehaviours.Length; i++)
         {
-            entityBehaviours[i].value.Destroy();
+            entityBehaviours[i].value.DestroyAndCleanup();
         }
     }
     

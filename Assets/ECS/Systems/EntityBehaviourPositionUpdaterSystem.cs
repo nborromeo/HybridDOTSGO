@@ -9,6 +9,7 @@ using UnityEngine.Jobs;
 /// Synchronizes positions of linked entities.
 /// </summary>
 [BurstCompile]
+[UpdateAfter(typeof(EntityBehaviourCleanupSystem))]
 public partial struct EntityBehaviourPositionUpdaterSystem : ISystem
 {
     private EntityQuery _entityQuery;

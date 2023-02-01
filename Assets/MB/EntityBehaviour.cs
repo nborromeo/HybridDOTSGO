@@ -6,15 +6,21 @@ using Object = UnityEngine.Object;
 public class EntityBehaviour : MonoBehaviour
 {
     private int _index = -1;
-    
+    private World _world;
+
+    private bool NeedsCleanup => _index >= 0;
+    private bool EntityManagerExists => _world.IsCreated;
+
     public EntityManager EntityManager { get; private set; }
     public Entity Entity { get; private set; }
 
     public void Init(Entity entity, EntityManager entityManager)
     {
+        _index = EntityBehaviourManager.Instance.All.Count;
+        _world = entityManager.World;
+        
         Entity = entity;
         EntityManager = entityManager;
-        _index = EntityBehaviourManager.Instance.All.Count;
         EntityManager.AddComponentData(entity, new EntityBehaviourReference {value = this});
         EntityManager.AddComponentData(entity, new EntityBehaviourIndex {value = _index});
         
@@ -22,18 +28,14 @@ public class EntityBehaviour : MonoBehaviour
         EntityBehaviourManager.Instance.All.Add(this);
     }
 
-    public void Destroy()
+    public void DestroyAndCleanup()
     {
-        Destroy(true);
+        Destroy(gameObject);
+        Cleanup();
     }
 
-    private void Destroy(bool destroyGO)
+    private void Cleanup()
     {
-        if (_index < 0)
-        {
-            return;
-        }
-
         if (EntityBehaviourManager.Instance != null)
         {
             EntityBehaviourManager.Instance.Positions.RemoveAtSwapBack(_index);
@@ -41,32 +43,39 @@ public class EntityBehaviour : MonoBehaviour
 
             if (_index < EntityBehaviourManager.Instance.All.Count)
             {
-                var swappedEntityBehaviour = EntityBehaviourManager.Instance.All[_index];
-                swappedEntityBehaviour._index = _index;
-
-                var swappedEntityBehaviourEntity = swappedEntityBehaviour.Entity;
-                EntityManager.SetComponentData(swappedEntityBehaviourEntity, new EntityBehaviourIndex { value = _index });
+                var swappedBehaviour = EntityBehaviourManager.Instance.All[_index];
+                swappedBehaviour._index = _index;
+                
+                if (EntityManagerExists)
+                {
+                    var swappedEntity = swappedBehaviour.Entity;
+                    if (EntityManager.HasComponent<EntityBehaviourIndex>(swappedEntity))
+                    {
+                        EntityManager.SetComponentData(swappedEntity, new EntityBehaviourIndex {value = _index});
+                    }
+                }
             }
-            
-            EntityManager.RemoveComponent<EntityBehaviourReference>(Entity);
-            EntityManager.DestroyEntity(Entity);
         }
 
         _index = -1;
 
-        if (destroyGO)
+        if (EntityManagerExists)
         {
-            Object.Destroy(gameObject);
+            EntityManager.RemoveComponent<EntityBehaviourReference>(Entity);
+            EntityManager.DestroyEntity(Entity);
         }
+    }
+    
+    public T GetComponentData<T>() where T : unmanaged, IComponentData
+    {
+        return EntityManager.GetComponentData<T>(Entity);
     }
 
     private void OnDestroy()
     {
-        Destroy(false);
-    }
-
-    public T GetComponentData<T>() where T : unmanaged, IComponentData
-    {
-        return EntityManager.GetComponentData<T>(Entity);
+        if (NeedsCleanup)
+        {
+            Cleanup();
+        }
     }
 }
