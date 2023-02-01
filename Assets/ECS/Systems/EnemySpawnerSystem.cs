@@ -30,10 +30,22 @@ public partial struct EnemySpawnerSystem : ISystem
             var enemyEntity = enemyEntities[i];
             var enemyGo = Object.Instantiate(EnemyUIManager.Instance.Prefab);
             enemyGo.Init(enemyEntity, state.EntityManager);
-            
-            var position = new float3 {x = (int)(i / (GridSize * GridSize)), y = i / GridSize % GridSize, z = i % 10} * 2;
-            state.EntityManager.AddComponentData(enemyEntity, new HealthBarRef {value = enemyGo.GetComponentInChildren<HealthBar>()});
+
+            var position = new float3 {x = (i / (GridSize * GridSize)), y = i / GridSize % GridSize, z = i % 10} * 2;
+            var healthBar = enemyGo.GetComponentInChildren<HealthBar>();
+            state.EntityManager.AddComponentData(enemyEntity, new HealthBarRef {value = healthBar});
             state.EntityManager.SetComponentData(enemyEntity, new LocalTransform {Position = position, Scale = 1});
+
+            //Adding random tag components to generate multiple archetypes.
+            switch (UnityEngine.Random.Range(0, 100))
+            {
+                case < 33:
+                    state.EntityManager.AddComponent<TestTag1>(enemyEntity);
+                    break;
+                case < 66:
+                    state.EntityManager.AddComponent<TestTag2>(enemyEntity);
+                    break;
+            }
         }
 
         var spawnerEntity = SystemAPI.GetSingletonEntity<EnemySpawner>();
