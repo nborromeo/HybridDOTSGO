@@ -3,11 +3,11 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
-using UnityEngine;
 using UnityEngine.Jobs;
-using Random = UnityEngine.Random;
+using Object = UnityEngine.Object;
 
 [BurstCompile]
+[UpdateInGroup(typeof(InitializationSystemGroup))]
 public partial struct EnemySpawnerSystem : ISystem
 {
     private const int GridSize = 10;
@@ -23,7 +23,7 @@ public partial struct EnemySpawnerSystem : ISystem
         var spawner = SystemAPI.GetSingleton<EnemySpawner>();
         var enemyEntities = new NativeArray<Entity>(spawner.amount, Allocator.Temp);
         state.EntityManager.Instantiate(spawner.enemyPrefab, enemyEntities);
-        EntityBehaviourManager.Instance.Positions = new TransformAccessArray(spawner.amount);
+        EntityBehaviourManager.Instance.Transforms = new TransformAccessArray(spawner.amount);
 
         for (var i = 0; i < enemyEntities.Length; i++)
         {
@@ -31,7 +31,7 @@ public partial struct EnemySpawnerSystem : ISystem
             var enemyGo = Object.Instantiate(EnemyUIManager.Instance.Prefab);
             enemyGo.Init(enemyEntity, state.EntityManager);
             
-            var position = new float3 {x = i / (GridSize * GridSize), y = i / GridSize % GridSize, z = i % 10} * 2;
+            var position = new float3 {x = (int)(i / (GridSize * GridSize)), y = i / GridSize % GridSize, z = i % 10} * 2;
             state.EntityManager.AddComponentData(enemyEntity, new HealthBarRef {value = enemyGo.GetComponentInChildren<HealthBar>()});
             state.EntityManager.SetComponentData(enemyEntity, new LocalTransform {Position = position, Scale = 1});
         }

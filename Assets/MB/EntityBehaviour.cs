@@ -1,7 +1,6 @@
 using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 public class EntityBehaviour : MonoBehaviour
 {
@@ -16,16 +15,20 @@ public class EntityBehaviour : MonoBehaviour
 
     public void Init(Entity entity, EntityManager entityManager)
     {
-        _index = EntityBehaviourManager.Instance.All.Count;
-        _world = entityManager.World;
-        
+        //Save the references to read/write data from our entity counterpart
         Entity = entity;
         EntityManager = entityManager;
-        EntityManager.AddComponentData(entity, new EntityBehaviourReference {value = this});
-        EntityManager.AddComponentData(entity, new EntityBehaviourIndex {value = _index});
         
-        EntityBehaviourManager.Instance.Positions.Add(transform);
+        //Save the index of our transform in the TransformAccessArray before adding ourselves to it
+        _index = EntityBehaviourManager.Instance.Transforms.length;
+        EntityManager.AddComponentData(entity, new EntityBehaviourIndex {value = _index});
+        EntityBehaviourManager.Instance.Transforms.Add(transform);
+        
+        //Add a cleanup component to the entity to make sure it destroy this GameObject when cleaning up
+        EntityManager.AddComponentData(entity, new EntityBehaviourReference {value = this});
+        
         EntityBehaviourManager.Instance.All.Add(this);
+        _world = entityManager.World;
     }
 
     public void DestroyAndCleanup()
@@ -38,10 +41,11 @@ public class EntityBehaviour : MonoBehaviour
     {
         if (EntityBehaviourManager.Instance != null)
         {
-            EntityBehaviourManager.Instance.Positions.RemoveAtSwapBack(_index);
+            EntityBehaviourManager.Instance.Transforms.RemoveAtSwapBack(_index);
             EntityBehaviourManager.Instance.All.RemoveAtSwapBack(_index);
+            var isLast = _index >= EntityBehaviourManager.Instance.Transforms.length;
 
-            if (_index < EntityBehaviourManager.Instance.All.Count)
+            if (!isLast)
             {
                 var swappedBehaviour = EntityBehaviourManager.Instance.All[_index];
                 swappedBehaviour._index = _index;
@@ -69,6 +73,11 @@ public class EntityBehaviour : MonoBehaviour
     public T GetComponentData<T>() where T : unmanaged, IComponentData
     {
         return EntityManager.GetComponentData<T>(Entity);
+    }
+    
+    public bool HasComponent<T>() where T : unmanaged, IComponentData
+    {
+        return EntityManager.HasComponent<T>(Entity);
     }
 
     private void OnDestroy()

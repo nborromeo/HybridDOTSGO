@@ -2,6 +2,7 @@ using Unity.Burst;
 using Unity.Entities;
 
 [BurstCompile]
+[UpdateInGroup(typeof (SimulationSystemGroup), OrderLast = true)]
 [UpdateAfter(typeof(EndSimulationEntityCommandBufferSystem))]
 public partial struct EntityBehaviourCleanupSystem : ISystem
 {
@@ -16,6 +17,8 @@ public partial struct EntityBehaviourCleanupSystem : ISystem
     
     public void OnUpdate(ref SystemState state)
     {
+        //We can't use SystemAPI.Query because we want to destroy the entity definitely.
+        //Alternatively we can delay the destruction into another entity command buffer.
         var entityBehaviours = _query.ToComponentDataArray<EntityBehaviourReference>();
         for (var i = 0; i < entityBehaviours.Length; i++)
         {

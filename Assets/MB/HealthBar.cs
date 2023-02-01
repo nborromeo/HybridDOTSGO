@@ -16,7 +16,10 @@ public class HealthBar : MonoBehaviour
 
     private void Update()
     {
-        var enemyHealth = _behaviour.GetComponentData<Health>();
-        Image.fillAmount = enemyHealth.value / 100f;
+        if (_behaviour.HasComponent<Health>())
+        {
+            var enemyHealth = _behaviour.GetComponentData<Health>();
+            Image.fillAmount = enemyHealth.value / 100f;
+        }
     }
 }

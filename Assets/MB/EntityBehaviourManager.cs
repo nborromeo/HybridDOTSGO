@@ -7,9 +7,9 @@ public class EntityBehaviourManager : MonoBehaviour
 {
     public static EntityBehaviourManager Instance { get; private set; }
 
-    [SerializeField] private bool _destroyInECS;
+    [SerializeField] private bool _destroyInMb;
     
-    public TransformAccessArray Positions { get; set; }
+    public TransformAccessArray Transforms { get; set; }
     public List<EntityBehaviour> All { get; } = new();
 
     private void Awake()
@@ -27,25 +27,25 @@ public class EntityBehaviourManager : MonoBehaviour
 
     private void DeleteRandom()
     {
-        var indexToDelete = UnityEngine.Random.Range(0, All.Count);
+        var indexToDelete = Random.Range(0, All.Count);
         var entityToDestroy = All[indexToDelete];
 
-        if (_destroyInECS)
+        if (_destroyInMb)
+        {
+            Destroy(entityToDestroy.gameObject);
+        }
+        else
         {
             var world = entityToDestroy.EntityManager.World;
             var ecbSystem = world.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
             var ecb = ecbSystem.CreateCommandBuffer();
             ecb.DestroyEntity(entityToDestroy.Entity);
         }
-        else
-        {
-            Destroy(entityToDestroy.gameObject);
-        }
     }
 
     private void OnDestroy()
     {
-        Positions.Dispose();
+        Transforms.Dispose();
         Instance = null;
     }
 }
