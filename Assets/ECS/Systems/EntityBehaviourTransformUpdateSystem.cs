@@ -12,17 +12,18 @@ using UnityEngine.Jobs;
 [BurstCompile]
 [UpdateInGroup(typeof (SimulationSystemGroup), OrderLast = true)]
 [UpdateAfter(typeof(EntityBehaviourCleanupSystem))]
-public partial struct EntityBehaviourPositionUpdaterSystem : ISystem
+public partial struct EntityBehaviourTransformUpdateSystem : ISystem
 {
     private EntityQuery _entityQuery;
     private NativeArray<int> _entityIndexToQueryIndex;
-    private NativeArray<EntityBehaviourIndex> _entityIndices;
+    private NativeArray<EntityTransformIndex> _entityIndices;
     private NativeArray<WorldTransform> _entityPositions;
     
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        _entityQuery = SystemAPI.QueryBuilder().WithAll<WorldTransform, EntityBehaviourIndex>().Build();
+        _entityQuery = SystemAPI.QueryBuilder().WithAll<WorldTransform, EntityTransformIndex>().Build();
+        state.RequireForUpdate(_entityQuery);
     }
 
     public void OnUpdate(ref SystemState state)
@@ -38,7 +39,7 @@ public partial struct EntityBehaviourPositionUpdaterSystem : ISystem
 
         using (new ProfilerMarker("Get Arrays").Auto())
         {  
-            _entityIndices = _entityQuery.ToComponentDataArray<EntityBehaviourIndex>(Allocator.TempJob);
+            _entityIndices = _entityQuery.ToComponentDataArray<EntityTransformIndex>(Allocator.TempJob);
             _entityPositions = _entityQuery.ToComponentDataArray<WorldTransform>(Allocator.TempJob);
             _entityIndexToQueryIndex = new NativeArray<int>(_entityIndices.Length, Allocator.TempJob);
         }
@@ -67,7 +68,7 @@ public partial struct EntityBehaviourPositionUpdaterSystem : ISystem
     [BurstCompile]
     private struct QueryIndicesJob : IJobParallelFor
     {
-        [ReadOnly] public NativeArray<EntityBehaviourIndex> entityIndices;
+        [ReadOnly] public NativeArray<EntityTransformIndex> entityIndices;
         [NativeDisableParallelForRestriction] public NativeArray<int> entityIndexToQueryIndex;
         
         public void Execute(int queryIndex)

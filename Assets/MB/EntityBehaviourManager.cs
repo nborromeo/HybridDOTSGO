@@ -10,7 +10,7 @@ public class EntityBehaviourManager : MonoBehaviour
     [SerializeField] private bool _destroyInMb;
     
     public TransformAccessArray Transforms { get; set; }
-    public List<EntityBehaviour> All { get; } = new();
+    public List<EntityBehaviour> TransformsBehaviours { get; } = new();
 
     private void Awake()
     {
@@ -27,8 +27,8 @@ public class EntityBehaviourManager : MonoBehaviour
 
     private void DeleteRandom()
     {
-        var indexToDelete = Random.Range(0, All.Count);
-        var entityToDestroy = All[indexToDelete];
+        var indexToDelete = Random.Range(0, TransformsBehaviours.Count);
+        var entityToDestroy = TransformsBehaviours[indexToDelete];
 
         if (_destroyInMb)
         {

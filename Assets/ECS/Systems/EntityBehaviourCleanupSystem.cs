@@ -11,7 +11,7 @@ public partial struct EntityBehaviourCleanupSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        _query = SystemAPI.QueryBuilder().WithAll<EntityBehaviourReference>().WithNone<EntityBehaviourIndex>().Build();
+        _query = SystemAPI.QueryBuilder().WithAll<EntityBehaviourReference>().WithNone<EntityBehaviourActiveTag>().Build();
         state.RequireForUpdate(_query);
     }
     

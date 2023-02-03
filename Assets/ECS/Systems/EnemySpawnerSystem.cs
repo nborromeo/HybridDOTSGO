@@ -30,7 +30,8 @@ public partial struct EnemySpawnerSystem : ISystem
         {
             var enemyEntity = enemyEntities[i];
             var enemyGo = Object.Instantiate(EnemyUIManager.Instance.Prefab);
-            enemyGo.Init(enemyEntity, state.EntityManager);
+            var syncTransforms = UnityEngine.Random.Range(0, 100) < 50;
+            enemyGo.Init(enemyEntity, state.EntityManager, syncTransforms);
 
             var position = new float3 {x = i / (GridSize * GridSize), y = i / GridSize % GridSize, z = i % 10} * 2;
             var healthBar = enemyGo.GetComponentInChildren<HealthBar>();
