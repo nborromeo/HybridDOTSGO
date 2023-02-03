@@ -25,13 +25,14 @@ public partial struct EnemySpawnerSystem : ISystem
         state.EntityManager.Instantiate(spawner.enemyPrefab, enemyEntities);
         EntityBehaviourManager.Instance.Transforms = new TransformAccessArray(spawner.amount);
 
+        //Usually you can initialize batch spawned entities in jobs, but we can't here due to the GOs instantiation
         for (var i = 0; i < enemyEntities.Length; i++)
         {
             var enemyEntity = enemyEntities[i];
             var enemyGo = Object.Instantiate(EnemyUIManager.Instance.Prefab);
             enemyGo.Init(enemyEntity, state.EntityManager);
 
-            var position = new float3 {x = (i / (GridSize * GridSize)), y = i / GridSize % GridSize, z = i % 10} * 2;
+            var position = new float3 {x = i / (GridSize * GridSize), y = i / GridSize % GridSize, z = i % 10} * 2;
             var healthBar = enemyGo.GetComponentInChildren<HealthBar>();
             state.EntityManager.AddComponentData(enemyEntity, new HealthBarRef {value = healthBar});
             state.EntityManager.SetComponentData(enemyEntity, new LocalTransform {Position = position, Scale = 1});

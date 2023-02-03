@@ -64,6 +64,7 @@ public partial struct EntityBehaviourPositionUpdaterSystem : ISystem
     /// Given the ECS entity might not be ordered by entity index in our position query (_entityQuery) as the ui
     /// transforms. We need to map each entity id to the current index in the query, which can vary frame to frame.
     /// </summary>
+    [BurstCompile]
     private struct QueryIndicesJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<EntityBehaviourIndex> entityIndices;
@@ -80,6 +81,7 @@ public partial struct EntityBehaviourPositionUpdaterSystem : ISystem
     /// Iterate every entity ui (ordered by entity id) and copy the entity ECS position. Consider transforms in the
     /// TransformAccess must not have parent in order to be processed in different threads
     /// </summary>
+    [BurstCompile]
     private struct PositionJob : IJobParallelForTransform
     {     
         [ReadOnly] public NativeArray<LocalToWorld> positions;
