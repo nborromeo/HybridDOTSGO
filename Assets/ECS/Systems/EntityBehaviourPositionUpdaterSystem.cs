@@ -17,12 +17,12 @@ public partial struct EntityBehaviourPositionUpdaterSystem : ISystem
     private EntityQuery _entityQuery;
     private NativeArray<int> _entityIndexToQueryIndex;
     private NativeArray<EntityBehaviourIndex> _entityIndices;
-    private NativeArray<LocalToWorld> _entityPositions;
+    private NativeArray<WorldTransform> _entityPositions;
     
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        _entityQuery = SystemAPI.QueryBuilder().WithAll<LocalToWorld, EntityBehaviourIndex>().Build();
+        _entityQuery = SystemAPI.QueryBuilder().WithAll<WorldTransform, EntityBehaviourIndex>().Build();
     }
 
     public void OnUpdate(ref SystemState state)
@@ -39,7 +39,7 @@ public partial struct EntityBehaviourPositionUpdaterSystem : ISystem
         using (new ProfilerMarker("Get Arrays").Auto())
         {  
             _entityIndices = _entityQuery.ToComponentDataArray<EntityBehaviourIndex>(Allocator.TempJob);
-            _entityPositions = _entityQuery.ToComponentDataArray<LocalToWorld>(Allocator.TempJob);
+            _entityPositions = _entityQuery.ToComponentDataArray<WorldTransform>(Allocator.TempJob);
             _entityIndexToQueryIndex = new NativeArray<int>(_entityIndices.Length, Allocator.TempJob);
         }
 
@@ -84,7 +84,7 @@ public partial struct EntityBehaviourPositionUpdaterSystem : ISystem
     [BurstCompile]
     private struct PositionJob : IJobParallelForTransform
     {     
-        [ReadOnly] public NativeArray<LocalToWorld> positions;
+        [ReadOnly] public NativeArray<WorldTransform> positions;
         [ReadOnly] public NativeArray<int> entityIndexToQueryIndex;
         
         public void Execute(int entityIndex, TransformAccess transform)
