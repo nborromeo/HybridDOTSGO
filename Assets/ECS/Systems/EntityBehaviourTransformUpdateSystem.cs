@@ -15,9 +15,6 @@ using UnityEngine.Jobs;
 public partial struct EntityBehaviourTransformUpdateSystem : ISystem
 {
     private EntityQuery _entityQuery;
-    private NativeArray<int> _entityIndexToQueryIndex;
-    private NativeArray<EntityTransformIndex> _entityIndices;
-    private NativeArray<WorldTransform> _entityPositions;
     
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -32,33 +29,16 @@ public partial struct EntityBehaviourTransformUpdateSystem : ISystem
         {
             return;
         }
-      
-        //We dispose the previous frame used arrays. An alternative is to clean them in a system that executes
-        //at the end of this frame, but could cause a sync point while waiting these jobs to end.
-        DisposeArrays();
-
-        using (new ProfilerMarker("Get Arrays").Auto())
-        {  
-            _entityIndices = _entityQuery.ToComponentDataArray<EntityTransformIndex>(Allocator.TempJob);
-            _entityPositions = _entityQuery.ToComponentDataArray<WorldTransform>(Allocator.TempJob);
-            _entityIndexToQueryIndex = new NativeArray<int>(_entityIndices.Length, Allocator.TempJob);
-        }
-
-        var indicesJob = new QueryIndicesJob {entityIndices = _entityIndices, entityIndexToQueryIndex = _entityIndexToQueryIndex};
-        var indicesJobHandle = indicesJob.Schedule(_entityIndices.Length, 100, state.Dependency);
         
-        var positionJob = new PositionJob {positions = _entityPositions, entityIndexToQueryIndex = _entityIndexToQueryIndex};
-        state.Dependency = positionJob.Schedule(EntityBehaviourManager.Instance.Transforms, indicesJobHandle);
-    }
+        var entityIndices = _entityQuery.ToComponentDataArray<EntityTransformIndex>(Allocator.TempJob);
+        var entityPositions = _entityQuery.ToComponentDataArray<WorldTransform>(Allocator.TempJob);
+        var entityIndexToQueryIndex = new NativeArray<int>(entityIndices.Length, Allocator.TempJob);
 
-    private void DisposeArrays()
-    {
-        if (_entityPositions.IsCreated)
-        {
-            _entityIndices.Dispose();
-            _entityPositions.Dispose();
-            _entityIndexToQueryIndex.Dispose();
-        }
+        var indicesJob = new QueryIndicesJob {entityIndices = entityIndices, entityIndexToQueryIndex = entityIndexToQueryIndex};
+        var indicesJobHandle = indicesJob.Schedule(entityPositions.Length, 100, state.Dependency);
+
+        var positionJob = new PositionJob {positions = entityPositions, entityIndexToQueryIndex = entityIndexToQueryIndex};
+        state.Dependency = positionJob.Schedule(EntityBehaviourManager.Instance.Transforms, indicesJobHandle);
     }
 
     /// <summary>
@@ -68,7 +48,7 @@ public partial struct EntityBehaviourTransformUpdateSystem : ISystem
     [BurstCompile]
     private struct QueryIndicesJob : IJobParallelFor
     {
-        [ReadOnly] public NativeArray<EntityTransformIndex> entityIndices;
+        [ReadOnly, DeallocateOnJobCompletion] public NativeArray<EntityTransformIndex> entityIndices;
         [NativeDisableParallelForRestriction] public NativeArray<int> entityIndexToQueryIndex;
         
         public void Execute(int queryIndex)
@@ -85,8 +65,8 @@ public partial struct EntityBehaviourTransformUpdateSystem : ISystem
     [BurstCompile]
     private struct PositionJob : IJobParallelForTransform
     {     
-        [ReadOnly] public NativeArray<WorldTransform> positions;
-        [ReadOnly] public NativeArray<int> entityIndexToQueryIndex;
+        [ReadOnly, DeallocateOnJobCompletion] public NativeArray<WorldTransform> positions;
+        [ReadOnly, DeallocateOnJobCompletion] public NativeArray<int> entityIndexToQueryIndex;
         
         public void Execute(int entityIndex, TransformAccess transform)
         {
@@ -95,9 +75,5 @@ public partial struct EntityBehaviourTransformUpdateSystem : ISystem
         }
     }
 
-    [BurstCompile]
-    public void OnDestroy(ref SystemState state)
-    {
-        DisposeArrays();
-    }
+    [BurstCompile] public void OnDestroy(ref SystemState state) { }
 }
