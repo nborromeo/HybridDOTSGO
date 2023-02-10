@@ -2,7 +2,6 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
-using Unity.Profiling;
 using Unity.Transforms;
 using UnityEngine.Jobs;
 
@@ -30,14 +29,14 @@ public partial struct EntityBehaviourTransformUpdateSystem : ISystem
             return;
         }
         
-        var entityIndices = _entityQuery.ToComponentDataArray<EntityTransformIndex>(Allocator.TempJob);
-        var entityPositions = _entityQuery.ToComponentDataArray<WorldTransform>(Allocator.TempJob);
-        var entityIndexToQueryIndex = new NativeArray<int>(entityIndices.Length, Allocator.TempJob);
+        var transformIndices = _entityQuery.ToComponentDataArray<EntityTransformIndex>(Allocator.TempJob);
+        var queryPositions = _entityQuery.ToComponentDataArray<WorldTransform>(Allocator.TempJob);
+        var transformIndexToQueryIndex = new NativeArray<int>(transformIndices.Length, Allocator.TempJob);
 
-        var indicesJob = new QueryIndicesJob {entityIndices = entityIndices, entityIndexToQueryIndex = entityIndexToQueryIndex};
-        var indicesJobHandle = indicesJob.Schedule(entityPositions.Length, 100, state.Dependency);
+        var indicesJob = new QueryIndicesJob {transformIndices = transformIndices, transformIndexToQueryIndex = transformIndexToQueryIndex};
+        var indicesJobHandle = indicesJob.Schedule(queryPositions.Length, 100, state.Dependency);
 
-        var positionJob = new PositionJob {positions = entityPositions, entityIndexToQueryIndex = entityIndexToQueryIndex};
+        var positionJob = new PositionJob {queryPositions = queryPositions, transformIndexToQueryIndex = transformIndexToQueryIndex};
         state.Dependency = positionJob.Schedule(EntityBehaviourManager.Instance.Transforms, indicesJobHandle);
     }
 
@@ -48,13 +47,13 @@ public partial struct EntityBehaviourTransformUpdateSystem : ISystem
     [BurstCompile]
     private struct QueryIndicesJob : IJobParallelFor
     {
-        [ReadOnly, DeallocateOnJobCompletion] public NativeArray<EntityTransformIndex> entityIndices;
-        [NativeDisableParallelForRestriction] public NativeArray<int> entityIndexToQueryIndex;
+        [ReadOnly, DeallocateOnJobCompletion] public NativeArray<EntityTransformIndex> transformIndices;
+        [NativeDisableParallelForRestriction] public NativeArray<int> transformIndexToQueryIndex;
         
         public void Execute(int queryIndex)
         {
-            var entityIndex = entityIndices[queryIndex].value;
-            entityIndexToQueryIndex[entityIndex] = queryIndex;
+            var transformIndex = transformIndices[queryIndex].value;
+            transformIndexToQueryIndex[transformIndex] = queryIndex;
         }
     }
     
@@ -64,14 +63,14 @@ public partial struct EntityBehaviourTransformUpdateSystem : ISystem
     /// </summary>
     [BurstCompile]
     private struct PositionJob : IJobParallelForTransform
-    {     
-        [ReadOnly, DeallocateOnJobCompletion] public NativeArray<WorldTransform> positions;
-        [ReadOnly, DeallocateOnJobCompletion] public NativeArray<int> entityIndexToQueryIndex;
+    {
+        [ReadOnly, DeallocateOnJobCompletion] public NativeArray<WorldTransform> queryPositions;
+        [ReadOnly, DeallocateOnJobCompletion] public NativeArray<int> transformIndexToQueryIndex;
         
-        public void Execute(int entityIndex, TransformAccess transform)
+        public void Execute(int transformIndex, TransformAccess transform)
         {
-            var queryIndex = entityIndexToQueryIndex[entityIndex];
-            transform.position = positions[queryIndex].Position;
+            var queryIndex = transformIndexToQueryIndex[transformIndex];
+            transform.position = queryPositions[queryIndex].Position;
         }
     }
 
